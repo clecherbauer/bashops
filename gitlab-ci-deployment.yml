@@ -1,0 +1,184 @@
+.if_review: &if_review
+  only:
+  - branches
+  except:
+  - staging
+  - test
+  - master
+  - tags
+
+.if_staging: &if_staging
+  only:
+  - staging
+  except:
+  - tags
+
+.if_test: &if_test
+  only:
+  - test
+  except:
+  - tags
+
+.if_production: &if_production
+  only:
+  - master
+  except:
+  - tags
+
+stages:
+- prepare
+- check
+- outdated
+- test
+- docs
+- build
+- deploy
+- cleanup
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  KUBECONFIG: /etc/kubeconfig
+
+tag:
+  stage: prepare
+  image: docker:git
+  <<: *if_production
+  script:
+  - if [ -z "$(git tag -l --points-at HEAD)" ]; then echo "There is no tag on this commit!"; exit 1; fi
+
+build-docker-build-env:
+  stage: prepare
+  image: docker:git
+  script:
+  - echo "CI_COMMIT_REF_SLUG=$CI_COMMIT_REF_SLUG" > .docker_build_env
+  - echo "CI_COMMIT_SHA=$CI_COMMIT_SHA" >> .docker_build_env
+  - echo "VERSION=$CI_COMMIT_REF_SLUG-$(git tag -l --points-at HEAD)" >> .docker_build_env
+  - echo "CI_PROJECT_PATH=$CI_PROJECT_PATH" >> .docker_build_env
+  artifacts:
+    paths:
+    - .docker_build_env
+
+shellcheck:
+  image: koalaman/shellcheck-alpine
+  stage: check
+  script:
+  - find . -name "*.sh" -exec shellcheck {} +
+  except:
+  - tags
+
+.build_template: &build_job_template
+  stage: build
+  image: docker:git
+  services:
+  - name: docker:dind
+  before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  allow_failure: false
+  script:
+  - apk add --no-cache bash
+  - echo "$SSH_KEY_CONTAINER" > id_rsa
+  - .deployment/lib/build_and_push.sh
+
+build_review:
+  <<: *build_job_template
+  <<: *if_review
+  when: manual
+
+build_staging:
+  <<: *build_job_template
+  <<: *if_staging
+
+build_test:
+  <<: *build_job_template
+  <<: *if_test
+
+build_production:
+  <<: *build_job_template
+  <<: *if_production
+
+deploy_review:
+  stage: deploy
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  before_script:
+  - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+  script:
+  - if [ -f .deployment/deploy.sh ]; then .deployment/deploy.sh; else .deployment/lib/deploy.sh; fi
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://$CI_COMMIT_REF_SLUG.review.selbstmade.ch
+    on_stop: stop_review
+  <<: *if_review
+
+deploy_staging:
+  stage: deploy
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  before_script:
+  - echo "$KUBECONFIG_STAGING" > "$KUBECONFIG"
+  script:
+  - if [ -f .deployment/deploy.sh ]; then .deployment/deploy.sh; else .deployment/lib/deploy.sh; fi
+  <<: *if_staging
+
+deploy_test:
+  stage: deploy
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  before_script:
+  - echo "$KUBECONFIG_TEST" > "$KUBECONFIG"
+  script:
+  - if [ -f .deployment/deploy.sh ]; then .deployment/deploy.sh; else .deployment/lib/deploy.sh; fi
+  <<: *if_test
+
+deploy_production:
+  stage: deploy
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  before_script:
+  - echo "$KUBECONFIG_PRODUCTION" > "$KUBECONFIG"
+  script:
+  - if [ -f .deployment/deploy.sh ]; then .deployment/deploy.sh; else .deployment/lib/deploy.sh; fi
+  <<: *if_production
+
+stop_review:
+  stage: cleanup
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  before_script:
+  - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
+  - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+  script:
+  - .deployment/lib/teardown.sh
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  when: manual
+  <<: *if_review
+
+cleanup_deploy_staging:
+  stage: cleanup
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  when: on_failure
+  before_script:
+  - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
+  - echo "$KUBECONFIG_STAGING" > "$KUBECONFIG"
+  script:
+  - .deployment/lib/cleanup.sh
+  <<: *if_staging
+
+cleanup_deploy_test:
+  stage: cleanup
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  when: on_failure
+  before_script:
+  - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
+  - echo "$KUBECONFIG_TEST" > "$KUBECONFIG"
+  script:
+  - .deployment/lib/cleanup.sh
+  <<: *if_test
+
+cleanup_deploy_production:
+  stage: cleanup
+  image: registry.gitlab.com/selbstmade/docker-images/kubectl-helm
+  when: on_failure
+  before_script:
+  - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
+  - echo "$KUBECONFIG_PRODUCTION" > "$KUBECONFIG"
+  script:
+  - .deployment/lib/cleanup.sh
+  <<: *if_production

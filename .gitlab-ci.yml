@@ -1,0 +1,10 @@
+stages:
+- check
+
+shellcheck:
+  image: koalaman/shellcheck-alpine
+  stage: check
+  script:
+  - find . -name "*.sh" -exec shellcheck {} +
+  except:
+  - tags
