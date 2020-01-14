@@ -14,8 +14,6 @@ _BLUE_GREEN_MODE=service #(service|ingress)
 _BLUE_GREEN_PATCHABLE_OBJECT="none"  #(service or ingress name)
 _PRODUCTION_INSTANCES="none"
 _STAGING_INSTANCES="none"
-
-_REVIEW_HOST="review.selbstmade.ch"
 _REVIEW_DATABASE_CONTAINER="database"
 
 _PROJECT_PREFIX="dummy"
@@ -40,6 +38,9 @@ _SUB_DOMAIN_=""
 _DEPLOYMENT_TOPLEVEL_DOMAIN="deployment.dummy.cloud.selbstmade.ch"
 
 _REVIEW_CLUSTER_TOPLEVEL_DOMAIN="dummy.selbstmade.ch"
+
+# ssh user
+_REVIEW_CLUSTER_USER="selbstmade"
 
 # branch-based _PRODUCTION_PORT:
 # _PRODUCTION_PORT_MASTER="30080"
@@ -66,12 +67,72 @@ _PATHS_TO_CHECK="/health"
 WEB_ROOT=""
 _OLD_NAMESPACE=""
 
-#Variables set by readVariablesFromGitlab
-CI_COMMIT_REF_SLUG=""
-CI_COMMIT_SHA=""
-CI_SHELL_DEBUG=""
-CI_PROJECT_PATH=""
-VERSION=""
+#Define used Gitlab-CI Variables if not set
+if [ -z "$CI_COMMIT_REF_SLUG" ]; then
+    CI_COMMIT_REF_SLUG=""
+fi
+if [ -z "$CI_COMMIT_SHA" ]; then
+    CI_COMMIT_REF_SLUG=""
+fi
+if [ -z "$CI_SHELL_DEBUG" ]; then
+    CI_SHELL_DEBUG=""
+fi
+if [ -z "$CI_PROJECT_PATH" ]; then
+    CI_PROJECT_PATH=""
+fi
+if [ -z "$VERSION" ]; then
+    VERSION=""
+fi
+
+#Variables loaded from .env in gitlab-ci-secrets and used during build
+_BUILD_VARIABLES_FROM_DOTENV=""
+
+# Variables loaded from Environment with CI_COMMIT_REF_SLUG as postfix
+# e.g.: for variable TESTVAR in master define TESTVAR_MASTER in gitlab-ci-secrets an add TESTVAR to _BUILD_VARIABLES_DYNAMIC"
+_BUILD_VARIABLES_DYNAMIC=""
+
+function writeDockerBuildEnv {
+    exitIfRequiredVariablesAreNotSet "CI_COMMIT_REF_SLUG CI_COMMIT_SHA CI_PROJECT_PATH"
+    echo "CI_COMMIT_REF_SLUG=$CI_COMMIT_REF_SLUG" > .docker_build_env
+    # shellcheck disable=SC2129
+    echo "CI_COMMIT_SHA=$CI_COMMIT_SHA" >> .docker_build_env
+    echo "CI_PROJECT_PATH=$CI_PROJECT_PATH" >> .docker_build_env
+
+    TAG="$(git tag -l --points-at HEAD)"
+
+    if [ -n "$TAG" ];
+      then
+        echo "VERSION=$CI_COMMIT_REF_SLUG-$TAG" >> .docker_build_env
+      else
+        echo "VERSION=$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA" >> .docker_build_env
+    fi
+
+
+    if [ -n "$_BUILD_VARIABLES_FROM_DOTENV" ]; then
+      DOTENV_VARIABLE_NAME="DOTENV_REVIEW"
+      if isProductionInstance || isStagingInstance; then
+          DOTENV_VARIABLE_NAME="DOTENV_"$(echo "$CI_COMMIT_REF_SLUG" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+      fi
+
+      exitIfRequiredVariablesAreNotSet "$DOTENV_VARIABLE_NAME"
+      for _BUILD_VARIABLE in $_BUILD_VARIABLES_FROM_DOTENV; do
+        for _DOTENV_VARIABLE in ${!DOTENV_VARIABLE_NAME}; do
+          if [[ $_DOTENV_VARIABLE = "$_BUILD_VARIABLE="* ]]; then
+            echo "$_DOTENV_VARIABLE" >> .docker_build_env
+          fi
+        done
+      done
+    fi
+
+    if [ -n "$_BUILD_VARIABLES_DYNAMIC" ]; then
+      for _BUILD_VARIABLE in $_BUILD_VARIABLES_DYNAMIC; do
+        _DYNAMIC_VARIABLE_NAME=$_BUILD_VARIABLE"_"$(echo "$CI_COMMIT_REF_SLUG" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+        if [ -n "${!_DYNAMIC_VARIABLE_NAME}" ]; then
+          echo "$_BUILD_VARIABLE=${!_DYNAMIC_VARIABLE_NAME}" >> .docker_build_env
+        fi
+      done
+    fi
+}
 
 
 function readVariablesFromGitlab {
@@ -618,6 +679,27 @@ function getDynamicVariableOrFallback() {
     fi
 
     echo "${!VARIABLE_NAME}"
+}
+
+function installHelmChart() {
+    exitIfRequiredVariablesAreNotSet "VERSION _SECRETS_NAME"
+    echo ">>> installing chart"
+    helm install .deployment/kubernetes --name="$(getReleaseName)" --namespace "$(getProjectNamespace)" --wait --debug --timeout 3600 \
+      --set "registry=$_DOCKER_REGISTRY" \
+      --set "version=0.0.1"\
+      --set "image.prefix=$CI_PROJECT_PATH" \
+      --set "image.tag=$CI_COMMIT_REF_SLUG" \
+      --set "version=$VERSION" \
+      --set "environment=$(getProjectEnvironment)" \
+      --set "branch=$CI_COMMIT_REF_SLUG" \
+      --set "domain.production=$(getProjectProductionDomain)" \
+      --set "domain.deployment=$(getProjectDeploymentDomain)" \
+      --set "port.production=$(getProjectProductionPort)" \
+      --set "port.deployment=$(getProjectDeploymentPort)" \
+      --set "secrets=$_SECRETS_NAME" \
+      --set "namespace=$(getProjectNamespace)" \
+      --set "htpasswd=$(getBase64EncodedReviewHtpasswdString "$_STAGING_HTPASSWD_USER" "$_STAGING_HTPASSWD_PASSWORD")" \
+      --set "secretVariableKeys=$(convertSecretKeysToArray)"
 }
 
 readVariablesFromGitlab

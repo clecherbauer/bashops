@@ -2,7 +2,7 @@ stages:
 - check
 
 shellcheck:
-  image: koalaman/shellcheck-alpine
+  image: koalaman/shellcheck-alpine:stable
   stage: check
   script:
   - find . -name "*.sh" -exec shellcheck {} +
