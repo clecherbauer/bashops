@@ -661,8 +661,8 @@ function establishSSHTunnel() {
 function buildAndPushContainerImages() {
     exitIfRequiredVariablesAreNotSet "_CONTAINERS_TO_BUILD _DOCKER_REGISTRY CI_PROJECT_PATH CI_COMMIT_REF_SLUG"
     for _CONTAINER in $_CONTAINERS_TO_BUILD; do
-        docker build -f ".deployment/docker/$_CONTAINER/Dockerfile" -t "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$CI_COMMIT_REF_SLUG" .
-        docker push "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$CI_COMMIT_REF_SLUG"
+        docker build -f ".deployment/docker/$_CONTAINER/Dockerfile" -t "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)" .
+        docker push "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)"
     done
 }
 
@@ -691,10 +691,10 @@ function installHelmChart() {
     echo ">>> installing chart"
     helm install .deployment/kubernetes --name="$(getReleaseName)" --namespace "$(getProjectNamespace)" --wait --debug --timeout 3600 \
       --set "registry=$_DOCKER_REGISTRY" \
-      --set "version=0.0.1"\
-      --set "image.prefix=$CI_PROJECT_PATH" \
-      --set "image.tag=$CI_COMMIT_REF_SLUG" \
       --set "version=$VERSION" \
+      --set "image.prefix=$CI_PROJECT_PATH" \
+      --set "image.tag=$(getImageTag)" \
+      --set "image.pullPolicy=$(getPullPolicy)" \
       --set "environment=$(getProjectEnvironment)" \
       --set "branch=$CI_COMMIT_REF_SLUG" \
       --set "domain.production=$(getProjectProductionDomain)" \
@@ -705,6 +705,22 @@ function installHelmChart() {
       --set "namespace=$(getProjectNamespace)" \
       --set "htpasswd=$(getBase64EncodedReviewHtpasswdString "$_STAGING_HTPASSWD_USER" "$_STAGING_HTPASSWD_PASSWORD")" \
       --set "secretVariableKeys=$(convertSecretKeysToArray)"
+}
+
+function getImageTag() {
+    _IMAGE_TAG="$(getProjectNamespace)"
+    if isReviewInstance; then
+      _IMAGE_TAG="$CI_COMMIT_REF_SLUG"
+    fi
+    echo "$_IMAGE_TAG"
+}
+
+function getPullPolicy() {
+    if isReviewInstance; then
+      echo "Always"
+      return
+    fi
+    echo "IfNotPresent"
 }
 
 readVariablesFromGitlab
