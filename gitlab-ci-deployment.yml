@@ -138,13 +138,19 @@ stop_review:
   stage: cleanup
   image: $KUBECTL_HELM_IMAGE
   before_script:
-  - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
+    - git clone $CI_REPOSITORY_URL repository
+    - cd repository
+    - git checkout $CI_COMMIT_SHA
+    - git submodule update --init
+    - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
   - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
   script:
   - .deployment/lib/teardown.sh
   environment:
     name: review/$CI_COMMIT_REF_SLUG
     action: stop
+  variables:
+    GIT_STRATEGY: none
   when: manual
   <<: *if_review
 
