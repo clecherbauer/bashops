@@ -451,10 +451,6 @@ function patchBlueGreen() {
     fi
 }
 
-function postBlueGreenHook() {
-    echo ""
-}
-
 function patchIngressBlueGreen() {
     INGRESS_NAME="$1"
     exitIfRequiredVariablesAreNotSet "INGRESS_NAME"
@@ -721,6 +717,14 @@ function getPullPolicy() {
       return
     fi
     echo "IfNotPresent"
+}
+
+function postBlueGreenHook() {
+    echo ""
+}
+
+function preInitHook() {
+    echo ""
 }
 
 readVariablesFromGitlab

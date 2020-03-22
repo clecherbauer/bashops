@@ -12,6 +12,8 @@ source "$(dirname "$(readlink -f "$0")")/functions.sh"
 source "$(dirname "$(readlink -f "$0")")/../custom_vars.sh"
 initOldNamespaceVariable
 
+preInitHook
+
 if ! isReviewInstance && deploymentAlreadyExists; then
     echo "Aborting: Deployment with Releasename  \"$(getReleaseName)\" already exists!"
     exit 1
