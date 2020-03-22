@@ -50,6 +50,7 @@ tag:
   image: docker:git
   <<: *if_production
   script:
+  - git fetch --tags -f
   - if [ -z "$(git tag -l --points-at HEAD)" ]; then echo "There is no tag on this commit!"; exit 1; fi
 
 build-docker-build-env:
