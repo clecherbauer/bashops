@@ -6,6 +6,7 @@ set -e
 _REVIEW_DATABASE_CONTAINER=""
 _STAGING_HTPASSWD_USER=""
 _STAGING_HTPASSWD_PASSWORD=""
+_CHECK_PROTOCOL=""
 
 source "$(dirname "$(readlink -f "$0")")/functions.sh"
 source "$(dirname "$(readlink -f "$0")")/../custom_vars.sh"
@@ -31,9 +32,9 @@ fi
 waitUntilPodsDeployed
 
 if isStagingInstance; then
-    authenticateWithFormAuth https "$(getProjectDeploymentDomain)" "$_STAGING_HTPASSWD_USER" "$_STAGING_HTPASSWD_PASSWORD"
+    authenticateWithFormAuth "$_CHECK_PROTOCOL" "$(getProjectDeploymentDomain)" "$_STAGING_HTPASSWD_USER" "$_STAGING_HTPASSWD_PASSWORD"
 fi
-checkPathsForPositiveResponse https
+checkPathsForPositiveResponse "$_CHECK_PROTOCOL"
 
 if ! isReviewInstance; then
     patchBlueGreen
