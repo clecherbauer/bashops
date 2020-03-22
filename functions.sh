@@ -3,6 +3,7 @@
 # shellcheck disable=SC2034
 # shellcheck disable=SC2086
 # shellcheck disable=SC2044
+# shellcheck disable=SC2126
 
 set -e
 
@@ -41,6 +42,8 @@ _REVIEW_CLUSTER_TOPLEVEL_DOMAIN="dummy.selbstmade.ch"
 
 # ssh user
 _REVIEW_CLUSTER_USER="selbstmade"
+
+_REVIEW_MAX_INSTANCES=5
 
 # branch-based _PRODUCTION_PORT:
 # _PRODUCTION_PORT_MASTER="30080"
@@ -719,12 +722,20 @@ function getPullPolicy() {
     echo "IfNotPresent"
 }
 
+function preInitHook() {
+    echo ""
+}
+
 function postBlueGreenHook() {
     echo ""
 }
 
-function preInitHook() {
-    echo ""
+function maxReviewInstancesReached() {
+    CURRENT_AMMOUNT=$(kubectl get namespaces --no-headers | grep -v 'default' | grep -v 'kube-node-lease' | grep -v 'kube-public' | grep -v 'kube-system' | wc -l)
+    if [ "$CURRENT_AMMOUNT" -le "$_REVIEW_MAX_INSTANCES" ]; then
+      return $_FALSE_VALUE
+    fi
+    return $_TRUE_VALUE
 }
 
 readVariablesFromGitlab

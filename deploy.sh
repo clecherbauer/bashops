@@ -20,6 +20,10 @@ if ! isReviewInstance && deploymentAlreadyExists; then
 fi
 
 if isReviewInstance; then
+    if maxReviewInstancesReached; then
+        echo "Aborting: There are too many Review-Instances!"
+        exit 1
+    fi
     removeOldInstanceIfExists
 fi
 

@@ -144,7 +144,7 @@ stop_review:
     - git checkout $CI_COMMIT_SHA
     - git submodule update --init
     - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
-  - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+    - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
   script:
   - .deployment/lib/teardown.sh
   environment:
