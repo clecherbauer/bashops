@@ -38,5 +38,6 @@ checkPathsForPositiveResponse "$_CHECK_PROTOCOL"
 
 if ! isReviewInstance; then
     patchBlueGreen
+    postBlueGreenHook
     removeOldInstanceIfExists
 fi
