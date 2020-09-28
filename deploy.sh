@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
 # shellcheck disable=SC2034
+# shellcheck disable=SC1091
 set -e
 
 _REVIEW_DATABASE_CONTAINER=""

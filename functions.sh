@@ -4,6 +4,7 @@
 # shellcheck disable=SC2086
 # shellcheck disable=SC2044
 # shellcheck disable=SC2126
+# shellcheck disable=SC1091
 
 set -e
 

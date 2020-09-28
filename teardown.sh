@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
+# shellcheck disable=SC1091
 set -e
 
 _REVIEW_CLUSTER_USER=""
