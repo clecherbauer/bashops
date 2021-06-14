@@ -311,47 +311,63 @@ function copyFileToFirstBootD {
 
 function modifyWwwDataUser {
     if isLocalDevInstance; then
-        echo ">>> Applying moduser.sh as www-data ..."
-        overrideUserIdWithIdFromDotEnv www-data
+        modifyUserWithIdFromDotEnv www-data
     fi
 }
 
-function isNumeric() {
-    [[ "$1" =~ ^-?[0-9]+$ ]]
-}
+function modifyUserWithIdFromDotEnv() {
+    isNumeric() {
+        [[ "$1" =~ ^-?[0-9]+$ ]]
+    }
 
-function userExists() {
-    id "$1" > /dev/null 2>&1
-}
+    userExists() {
+        id "$1" > /dev/null 2>&1
+    }
 
-function overrideUserIdWithIdFromDotEnv() {
     usage() {
         echo "Set a new user id and group id for a user." \
              "Usage: ${FUNCNAME[1]} username"
         [[ "$1" != "" ]] && echo "- ERROR: $1"
         exit 1
     }
-    USERNAME="$1"
+
     NEWUID=$(grep '^LOCAL_UID=' .env | sed 's/LOCAL_UID=//')
     NEWGID=$(grep '^LOCAL_GID=' .env | sed 's/LOCAL_GID=//')
-    userExists "$USERNAME" || usage "User does not exist: '$USERNAME'"
     isNumeric "$NEWUID" || usage "LOCAL_UID should be numeric: '$NEWUID'"
     isNumeric "$NEWGID" || usage "LOCAL_GID should be numeric: '$NEWGID'"
-    GROUPNAME=$(id -gn "$USERNAME")
-    OLDUID=$(id -u "$USERNAME")
-    OLDGID=$(id -g "$USERNAME")
-    # inspired by https://muffinresearch.co.uk/linux-changing-uids-and-gids-for-user/
-    if [[ "$NEWUID" != "$OLDUID" ]]; then
-        echo "Replacing id for $USERNAME: $OLDUID:$OLDGID -> $NEWUID:$NEWGID ..."
-        #workarround fo bug: https://github.com/golang/go/issues/13548
-        userdel "$USERNAME"
-        useradd "$USERNAME" --no-log-init -u "$NEWUID"
-        groupmod -g "$NEWGID" "$GROUPNAME"
-        find / -not -path "/sys/kernel/*" -ignore_readdir_race -user "$OLDUID" -exec chown -h "$NEWUID" {} \;
-        find / -not -path "/sys/kernel/*" -ignore_readdir_race -group "$OLDGID" -exec chgrp -h "$NEWGID" {} \;
-        usermod -g "$NEWGID" "$USERNAME"
-        echo "Done. $(id "$USERNAME")"
+
+    USERNAME="$1"
+    if userExists "$NEWUID"; then
+        NEW_HIGHEST_UID=$(($(cut -f 3 -d: /etc/passwd | sort -n | tail -n 1) + 1))
+
+        modifyUser "$(id -nu "$NEWUID")" "$NEW_HIGHEST_UID" "$NEW_HIGHEST_UID"
     fi
+
+    if [[ "$NEWUID" != "$OLDUID" ]]; then
+        modifyUser "$USERNAME" "$NEWUID" "$NEWGID"
+    fi
+}
+
+function modifyUser() {
+
+    _USERNAME=$1
+    _NEWUID=$2
+    _NEWGID=$3
+
+    userExists "$_USERNAME" || usage "User does not exist: '$_USERNAME'"
+    _GROUPNAME=$(id -gn "$_USERNAME")
+    _OLDUID=$(id -u "$_USERNAME")
+    _OLDGID=$(id -g "$_USERNAME")
+
+    echo "Replacing id for $_USERNAME: $_OLDUID:$_OLDGID -> $_NEWUID:$_NEWGID ..."
+    #workarround fo bug: https://github.com/golang/go/issues/13548
+    userdel "$_USERNAME"
+    useradd "$_USERNAME" --no-log-init -u "$_NEWUID"
+    groupmod -g "$_NEWGID" "$_GROUPNAME"
+    find / -not -path "/sys/kernel/*" -ignore_readdir_race -user "$_OLDUID" -exec chown -h "$_NEWUID" {} \;
+    find / -not -path "/sys/kernel/*" -ignore_readdir_race -group "$_OLDGID" -exec chgrp -h "$_NEWGID" {} \;
+    usermod -g "$_NEWGID" "$_USERNAME"
+    echo "Done. $(id "$_USERNAME")"
 }
 
 function installSSHKey {
