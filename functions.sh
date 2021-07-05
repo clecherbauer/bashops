@@ -216,18 +216,18 @@ function getProjectEnvironment() {
 function getProjectProductionDomain() {
     exitIfRequiredVariablesAreNotSet "CI_COMMIT_REF_SLUG _TOPLEVEL_DOMAIN _REVIEW_CLUSTER_TOPLEVEL_DOMAIN"
     _SUB_DOMAIN="$(getDynamicVariable "_SUB_DOMAIN" "$CI_COMMIT_REF_SLUG")"
-    _TOPLEVEL_DOMAIN="$_TOPLEVEL_DOMAIN"
+    __TOPLEVEL_DOMAIN="$_TOPLEVEL_DOMAIN"
     _DYNAMIC_TOPLEVEL_DOMAIN="$(getDynamicVariable "_TOPLEVEL_DOMAIN" "$CI_COMMIT_REF_SLUG")"
     if [ -n "$_DYNAMIC_TOPLEVEL_DOMAIN" ]; then
-        _TOPLEVEL_DOMAIN="$_DYNAMIC_TOPLEVEL_DOMAIN"
+        __TOPLEVEL_DOMAIN="$_DYNAMIC_TOPLEVEL_DOMAIN"
     fi
 
     if isProductionInstance || isStagingInstance; then
         if [ -z "$_SUB_DOMAIN" ]; then
-            echo "$_TOPLEVEL_DOMAIN"
+            echo "$__TOPLEVEL_DOMAIN"
             return
         fi
-        echo "$_SUB_DOMAIN.$_TOPLEVEL_DOMAIN"
+        echo "$_SUB_DOMAIN.$__TOPLEVEL_DOMAIN"
         return
     fi
 
@@ -343,9 +343,7 @@ function modifyUserWithIdFromDotEnv() {
         modifyUser "$(id -nu "$NEWUID")" "$NEW_HIGHEST_UID" "$NEW_HIGHEST_UID"
     fi
 
-    if [[ "$NEWUID" != "$OLDUID" ]]; then
-        modifyUser "$USERNAME" "$NEWUID" "$NEWGID"
-    fi
+    modifyUser "$USERNAME" "$NEWUID" "$NEWGID"
 }
 
 function modifyUser() {
