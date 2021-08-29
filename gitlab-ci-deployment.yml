@@ -146,7 +146,7 @@ stop_review:
     - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
     - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
   script:
-  - .deployment/bashops/teardown.sh
+  - .devops/bashops/teardown.sh
   environment:
     name: review/$CI_COMMIT_REF_SLUG
     action: stop

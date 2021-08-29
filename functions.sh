@@ -675,7 +675,7 @@ function establishSSHTunnel() {
 function buildAndPushContainerImages() {
     exitIfRequiredVariablesAreNotSet "_CONTAINERS_TO_BUILD _DOCKER_REGISTRY CI_PROJECT_PATH CI_COMMIT_REF_SLUG"
     for _CONTAINER in $_CONTAINERS_TO_BUILD; do
-        docker build -f ".deployment/docker/$_CONTAINER/Dockerfile" -t "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)" .
+        docker build -f ".devops/docker/$_CONTAINER/Dockerfile" -t "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)" .
         docker push "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)"
     done
 }
@@ -703,7 +703,7 @@ function getDynamicVariableOrFallback() {
 function installHelmChart() {
     exitIfRequiredVariablesAreNotSet "VERSION _SECRETS_NAME"
     echo ">>> installing chart"
-    helm install .deployment/kubernetes --name="$(getReleaseName)" --namespace "$(getProjectNamespace)" --wait --debug --timeout 3600 \
+    helm install .devops/kubernetes --name="$(getReleaseName)" --namespace "$(getProjectNamespace)" --wait --debug --timeout 3600 \
       --set "registry=$_DOCKER_REGISTRY" \
       --set "version=$VERSION" \
       --set "image.prefix=$CI_PROJECT_PATH" \
