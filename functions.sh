@@ -419,7 +419,7 @@ function removeOldInstanceIfExists() {
 }
 
 function deploymentAlreadyExists() {
-    DEPLOYMENT_EXISTS="$(helm ls --short --all | grep "$(getReleaseName)" --count || true)"
+    DEPLOYMENT_EXISTS="$(helm ls --short --all -A | grep "$(getReleaseName)" --count || true)"
     if [ "${DEPLOYMENT_EXISTS}" -eq "0" ]; then
         return $_FALSE_VALUE
     fi
@@ -452,7 +452,7 @@ function removeOldNameSpaces() {
         kubectl delete namespace "$NAMESPACE"
         INSTANCE_EXISTS=$(helm ls --short --all | grep "$NAMESPACE" --count || true)
         if [ "${INSTANCE_EXISTS}" -gt "0" ]; then
-            helm delete --purge "$PROJECT_NAME-$NAMESPACE"
+            helm delete --purge --namespace "$NAMESPACE" "$PROJECT_NAME-$NAMESPACE"
         fi
     done
 }
@@ -703,7 +703,7 @@ function getDynamicVariableOrFallback() {
 function installHelmChart() {
     exitIfRequiredVariablesAreNotSet "VERSION _SECRETS_NAME"
     echo ">>> installing chart"
-    helm install .devops/kubernetes --name="$(getReleaseName)" --namespace "$(getProjectNamespace)" --wait --debug --timeout 3600 \
+    helm install "$(getReleaseName)" .devops/kubernetes --namespace "$(getProjectNamespace)" \
       --set "registry=$_DOCKER_REGISTRY" \
       --set "version=$VERSION" \
       --set "image.prefix=$CI_PROJECT_PATH" \

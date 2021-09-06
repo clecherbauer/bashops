@@ -41,7 +41,7 @@ stages:
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   KUBECONFIG: /etc/kubeconfig
-  KUBECTL_HELM_IMAGE: registry.gitlab.com/clecherbauer/docker-images/k8s-tools
+  KUBECTL_HELM_IMAGE: registry.gitlab.com/clecherbauer/docker-images/k8s-tools:helm-3
   REVIEW_HOST: review.selbstmade.ch
   REVIEW_INSTANCES: "true"
 

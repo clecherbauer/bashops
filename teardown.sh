@@ -7,7 +7,7 @@ _REVIEW_CLUSTER_USER=""
 _REVIEW_CLUSTER_TOPLEVEL_DOMAIN=""
 
 source "$(dirname "$(readlink -f "$0")")/functions.sh"
-source "$(dirname "$(readlink -f "$0")")/../custom_vars.sh"
+source "$(dirname "$(readlink -f "$0")")/../bashops.sh"
 initOldNamespaceVariable
 
 removeOldNameSpaces "$(getOldInstanceNamespace)" "$(getProjectPrefix)"

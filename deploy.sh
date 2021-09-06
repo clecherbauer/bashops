@@ -10,7 +10,7 @@ _STAGING_HTPASSWD_PASSWORD=""
 _CHECK_PROTOCOL=""
 
 source "$(dirname "$(readlink -f "$0")")/functions.sh"
-source "$(dirname "$(readlink -f "$0")")/../custom_vars.sh"
+source "$(dirname "$(readlink -f "$0")")/../bashops.sh"
 initOldNamespaceVariable
 
 preInitHook

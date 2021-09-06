@@ -5,7 +5,7 @@
 set -e
 
 source "$(dirname "$(readlink -f "$0")")/functions.sh"
-source "$(dirname "$(readlink -f "$0")")/../custom_vars.sh"
+source "$(dirname "$(readlink -f "$0")")/../bashops.sh"
 
 echo ">>> Overview $(getProjectNamespace)"
 echo ""
