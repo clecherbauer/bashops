@@ -114,24 +114,28 @@ deploy_review:
     on_stop: stop_review
   before_script:
   - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+  - chmod 600 "$KUBECONFIG"
   <<: *deploy_template
   <<: *if_review
 
 deploy_staging:
   before_script:
   - echo "$KUBECONFIG_STAGING" > "$KUBECONFIG"
+  - chmod 600 "$KUBECONFIG"
   <<: *deploy_template
   <<: *if_staging
 
 deploy_test:
   before_script:
   - echo "$KUBECONFIG_TEST" > "$KUBECONFIG"
+  - chmod 600 "$KUBECONFIG"
   <<: *deploy_template
   <<: *if_test
 
 deploy_production:
   before_script:
   - echo "$KUBECONFIG_PRODUCTION" > "$KUBECONFIG"
+  - chmod 600 "$KUBECONFIG"
   <<: *deploy_template
   <<: *if_production
 
@@ -145,6 +149,7 @@ stop_review:
     - git submodule update --init
     - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
     - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+    - chmod 600 "$KUBECONFIG"
   script:
   - .devops/bashops/teardown.sh
   environment:
@@ -165,24 +170,28 @@ stop_review:
 logs_review:
   before_script:
     - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+    - chmod 600 "$KUBECONFIG"
   <<: *logs_template
   <<: *if_review
 
 logs_staging:
   before_script:
     - echo "$KUBECONFIG_STAGING" > "$KUBECONFIG"
+    - chmod 600 "$KUBECONFIG"
   <<: *logs_template
   <<: *if_staging
 
 logs_test:
   before_script:
     - echo "$KUBECONFIG_TEST" > "$KUBECONFIG"
+    - chmod 600 "$KUBECONFIG"
   <<: *logs_template
   <<: *if_test
 
 logs_production:
   before_script:
     - echo "$KUBECONFIG_PRODUCTION" > "$KUBECONFIG"
+    - chmod 600 "$KUBECONFIG"
   <<: *logs_template
   <<: *if_production
 
@@ -197,17 +206,20 @@ logs_production:
 cleanup_deploy_staging:
   before_script:
   - echo "$KUBECONFIG_STAGING" > "$KUBECONFIG"
+  - chmod 600 "$KUBECONFIG"
   <<: *cleanup_template
   <<: *if_staging
 
 cleanup_deploy_test:
   before_script:
   - echo "$KUBECONFIG_TEST" > "$KUBECONFIG"
+  - chmod 600 "$KUBECONFIG"
   <<: *cleanup_template
   <<: *if_test
 
 cleanup_deploy_production:
   before_script:
    - echo "$KUBECONFIG_PRODUCTION" > "$KUBECONFIG"
+   - chmod 600 "$KUBECONFIG"
   <<: *cleanup_template
   <<: *if_production
