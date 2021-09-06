@@ -452,7 +452,7 @@ function removeOldNameSpaces() {
         kubectl delete namespace "$NAMESPACE"
         INSTANCE_EXISTS=$(helm ls --short --all | grep "$NAMESPACE" --count || true)
         if [ "${INSTANCE_EXISTS}" -gt "0" ]; then
-            helm delete --purge --namespace "$NAMESPACE" "$PROJECT_NAME-$NAMESPACE"
+            helm delete --namespace "$NAMESPACE" "$PROJECT_NAME-$NAMESPACE"
         fi
     done
 }
