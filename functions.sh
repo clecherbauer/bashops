@@ -703,7 +703,7 @@ function getDynamicVariableOrFallback() {
 function installHelmChart() {
     exitIfRequiredVariablesAreNotSet "VERSION _SECRETS_NAME"
     echo ">>> installing chart"
-    helm install "$(getReleaseName)" .devops/kubernetes --namespace "$(getProjectNamespace)" \
+    helm install "$(getReleaseName)" .devops/kubernetes --namespace "$(getProjectNamespace)" --wait --timeout 60m0s \
       --set "registry=$_DOCKER_REGISTRY" \
       --set "version=$VERSION" \
       --set "image.prefix=$CI_PROJECT_PATH" \
