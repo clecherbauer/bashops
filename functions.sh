@@ -178,7 +178,7 @@ function exitIfRequiredVariablesAreNotSet {
 
 function getProjectNamespace() {
     exitIfRequiredVariablesAreNotSet "CI_COMMIT_REF_SLUG CI_COMMIT_SHA"
-    echo "$CI_COMMIT_REF_SLUG-$(echo "$CI_COMMIT_SHA" | cut -c1-9)"
+    echo "$CI_COMMIT_REF_SLUG-$(echo "$CI_COMMIT_SHA" | cut -c1-8)"
 }
 
 function initOldNamespaceVariable() {
