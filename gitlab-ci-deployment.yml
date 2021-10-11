@@ -76,8 +76,6 @@ shellcheck:
   image: docker:git
   services:
   - name: docker:dind
-  before_script:
-  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   allow_failure: false
   script:
   - apk add --no-cache bash

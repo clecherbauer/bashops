@@ -59,6 +59,10 @@ _PRODUCTION_PORT="30080"
 _DEPLOYMENT_PORT="30081"
 
 _DOCKER_REGISTRY="registry.gitlab.com"
+_DOCKER_REGISTRY_PATH=""
+_DOCKER_REGISTRY_USER=""
+_DOCKER_REGISTRY_PASSWORD=""
+
 _CONTAINERS_TO_BUILD="application"
 _CONTAINERS_TO_RUN="application"
 
@@ -674,9 +678,21 @@ function establishSSHTunnel() {
 
 function buildAndPushContainerImages() {
     exitIfRequiredVariablesAreNotSet "_CONTAINERS_TO_BUILD _DOCKER_REGISTRY CI_PROJECT_PATH CI_COMMIT_REF_SLUG"
+    if [ -z "$_DOCKER_REGISTRY_USER" ] && [ -z "$_DOCKER_REGISTRY_USER" ]; then
+        docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    else
+        docker login -u "$_DOCKER_REGISTRY_USER" -p "$_DOCKER_REGISTRY_PASSWORD" "$_DOCKER_REGISTRY"
+    fi
+
+    if [ -z "$_DOCKER_REGISTRY_PATH" ]; then
+        __DOCKER_REGISTRY_PATH="$_DOCKER_REGISTRY/$CI_PROJECT_PATH"
+    else
+        __DOCKER_REGISTRY_PATH="$_DOCKER_REGISTRY/$_DOCKER_REGISTRY_PATH"
+    fi
+
     for _CONTAINER in $_CONTAINERS_TO_BUILD; do
-        docker build -f ".devops/docker/$_CONTAINER/Dockerfile" -t "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)" .
-        docker push "$_DOCKER_REGISTRY/$CI_PROJECT_PATH/$_CONTAINER:$(getImageTag)"
+        docker build -f ".devops/docker/$_CONTAINER/Dockerfile" -t "$__DOCKER_REGISTRY_PATH/$_CONTAINER:$(getImageTag)" .
+        docker push "$__DOCKER_REGISTRY_PATH/$_CONTAINER:$(getImageTag)"
     done
 }
 
@@ -702,11 +718,18 @@ function getDynamicVariableOrFallback() {
 
 function installHelmChart() {
     exitIfRequiredVariablesAreNotSet "VERSION _SECRETS_NAME"
+
+    if [ -z "$_DOCKER_REGISTRY_PATH" ]; then
+        __DOCKER_REGISTRY_PATH="$CI_PROJECT_PATH"
+    else
+        __DOCKER_REGISTRY_PATH="$_DOCKER_REGISTRY_PATH"
+    fi
+
     echo ">>> installing chart"
     helm install "$(getReleaseName)" .devops/kubernetes --namespace "$(getProjectNamespace)" --wait --timeout 60m0s \
       --set "registry=$_DOCKER_REGISTRY" \
       --set "version=$VERSION" \
-      --set "image.prefix=$CI_PROJECT_PATH" \
+      --set "image.prefix=$__DOCKER_REGISTRY_PATH" \
       --set "image.tag=$(getImageTag)" \
       --set "image.pullPolicy=$(getPullPolicy)" \
       --set "environment=$(getProjectEnvironment)" \
