@@ -372,19 +372,6 @@ function modifyUser() {
     echo "Done. $(id "$_USERNAME")"
 }
 
-function installSSHKey {
-    SOURCE_PATH=$1
-    exitIfRequiredVariablesAreNotSet "SOURCE_PATH"
-    if ! isLocalDevInstance; then
-        echo ">>> Installing ssh-key ..."
-
-        [[ -d /root/.ssh/ ]] || mkdir /root/.ssh/
-        mv "$SOURCE_PATH" /root/.ssh/id_rsa
-        chmod -R 600 /root/.ssh
-        ssh-keygen -y -f /root/.ssh/id_rsa > /root/.ssh/id_rsa.pub
-    fi
-}
-
 function setPermissions {
     exitIfRequiredVariablesAreNotSet "WEB_ROOT"
     echo ">>> Setting permissions for $WEB_ROOT ..."
@@ -649,31 +636,6 @@ function convertSecretKeysToArray() {
     done
     array="$(echo "$array" | sed 's/,\([^,]*\)$/ \1/')}"
     echo "$array"
-}
-
-function waitUntilFlagFileExists() {
-    POD_NAME="$1"
-    FLAGFILE="$2"
-    exitIfRequiredVariablesAreNotSet "POD_NAME FLAGFILE"
-    tried_times=0
-    echo ">>> waiting for $FLAGFILE in $POD_NAME"
-    POD="$(kubectl get pods -n "$(getProjectNamespace)" | grep "$POD_NAME" | cut -d " " -f1)"
-    while [[ "$(kubectl exec "$POD" -n "$(getProjectNamespace)" cat "$FLAGFILE" 2>/dev/null)" != "1" ]]; do
-        echo -n -e ". "
-        sleep 1
-        if [ $((tried_times++)) -gt 500 ]; then
-          echo ">>> Error! Too many attempts to find $FLAGFILE in $POD_NAME"
-          exit 1
-        fi
-    done
-    echo ""
-}
-
-function establishSSHTunnel() {
-    _CONNECTION="$1"
-    _PORT="$2"
-    exitIfRequiredVariablesAreNotSet "_CONNECTION _PORT"
-    ssh -fN -L $_PORT:localhost:$_PORT $_CONNECTION -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no 2>&1
 }
 
 function buildAndPushContainerImages() {
