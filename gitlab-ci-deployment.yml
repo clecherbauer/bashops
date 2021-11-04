@@ -54,6 +54,8 @@ tag:
   - if [ -z "$(git tag -l --points-at HEAD)" ]; then echo "There is no tag on this commit!"; exit 1; fi
 
 build-docker-build-env:
+  except:
+  - tags
   stage: prepare
   image: docker:git
   script:
