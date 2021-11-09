@@ -35,7 +35,6 @@ stages:
 - docs
 - build
 - deploy
-- logs
 - cleanup
 
 variables:
@@ -159,41 +158,6 @@ stop_review:
     GIT_STRATEGY: none
   when: manual
   <<: *if_review
-
-.logs_template: &logs_template
-  stage: logs
-  image: $KUBECTL_HELM_IMAGE
-  when: always
-  script:
-    - .devops/bashops/collect_logs.sh
-
-logs_review:
-  before_script:
-    - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
-    - chmod 600 "$KUBECONFIG"
-  <<: *logs_template
-  <<: *if_review
-
-logs_staging:
-  before_script:
-    - echo "$KUBECONFIG_STAGING" > "$KUBECONFIG"
-    - chmod 600 "$KUBECONFIG"
-  <<: *logs_template
-  <<: *if_staging
-
-logs_test:
-  before_script:
-    - echo "$KUBECONFIG_TEST" > "$KUBECONFIG"
-    - chmod 600 "$KUBECONFIG"
-  <<: *logs_template
-  <<: *if_test
-
-logs_production:
-  before_script:
-    - echo "$KUBECONFIG_PRODUCTION" > "$KUBECONFIG"
-    - chmod 600 "$KUBECONFIG"
-  <<: *logs_template
-  <<: *if_production
 
 .cleanup_template: &cleanup_template
   stage: cleanup
