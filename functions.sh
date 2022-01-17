@@ -5,6 +5,8 @@
 # shellcheck disable=SC2044
 # shellcheck disable=SC2126
 # shellcheck disable=SC1091
+# shellcheck disable=SC2013
+# shellcheck disable=SC2002
 
 set -e
 
@@ -418,6 +420,18 @@ function deploymentAlreadyExists() {
     return $_TRUE_VALUE
 }
 
+createDotEnv() {
+      exitIfRequiredVariablesAreNotSet "CI_COMMIT_REF_SLUG"
+    DOTENV_VARIABLE_NAME="DOTENV_REVIEW"
+    if isProductionInstance || isStagingInstance; then
+        DOTENV_VARIABLE_NAME="DOTENV_"$(echo "$CI_COMMIT_REF_SLUG" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    fi
+
+    exitIfRequiredVariablesAreNotSet "$DOTENV_VARIABLE_NAME"
+
+    echo "${!DOTENV_VARIABLE_NAME}" > .env
+}
+
 function uploadSecretsFromDotEnv() {
     exitIfRequiredVariablesAreNotSet "_SECRETS_NAME"
     SECRET_EXISTS=$(kubectl get secret "$_SECRETS_NAME" -n "$(getProjectNamespace)" --no-headers | wc -l)
@@ -638,6 +652,15 @@ function convertSecretKeysToArray() {
     echo "$array"
 }
 
+function convertDotEnvKeysToArray() {
+    array="{"
+      for key in $(cat .env | grep -v -e '^$' | grep -v -e '^#' | cut -f1 -d"="); do
+        array="$array$key,"
+    done
+    array="$(echo "$array" | sed 's/,\([^,]*\)$/ \1/')}"
+    echo "$array"
+}
+
 function buildAndPushContainerImages() {
     exitIfRequiredVariablesAreNotSet "_CONTAINERS_TO_BUILD _DOCKER_REGISTRY CI_PROJECT_PATH CI_COMMIT_REF_SLUG"
     if [ -z "$_DOCKER_REGISTRY_USER" ] && [ -z "$_DOCKER_REGISTRY_USER" ]; then
@@ -704,6 +727,35 @@ function installHelmChart() {
       --set "namespace=$(getProjectNamespace)" \
       --set "htpasswd=$(getBase64EncodedReviewHtpasswdString "$_STAGING_HTPASSWD_USER" "$_STAGING_HTPASSWD_PASSWORD")" \
       --set "secretVariableKeys=$(convertSecretKeysToArray)"
+}
+
+function validateHelmChart() {
+    exitIfRequiredVariablesAreNotSet "VERSION _SECRETS_NAME"
+
+    if [ -z "$_DOCKER_REGISTRY_PATH" ]; then
+        __DOCKER_REGISTRY_PATH="$CI_PROJECT_PATH"
+    else
+        __DOCKER_REGISTRY_PATH="$_DOCKER_REGISTRY_PATH"
+    fi
+
+    helm template "$(getReleaseName)" .devops/kubernetes --debug  \
+      --set "registry=$_DOCKER_REGISTRY" \
+      --set "version=$VERSION" \
+      --set "image.prefix=$__DOCKER_REGISTRY_PATH" \
+      --set "image.tag=$(getImageTag)" \
+      --set "image.pullPolicy=$(getPullPolicy)" \
+      --set "environment=$(getProjectEnvironment)" \
+      --set "branch=$CI_COMMIT_REF_SLUG" \
+      --set "domain.production=$(getProjectProductionDomain)" \
+      --set "domain.deployment=$(getProjectDeploymentDomain)" \
+      --set "port.production=$(getProjectProductionPort)" \
+      --set "port.deployment=$(getProjectDeploymentPort)" \
+      --set "secrets=$_SECRETS_NAME" \
+      --set "namespace=$(getProjectNamespace)" \
+      --set "htpasswd=$(getBase64EncodedReviewHtpasswdString "$_STAGING_HTPASSWD_USER" "$_STAGING_HTPASSWD_PASSWORD")" \
+      --set "secretVariableKeys=$(convertDotEnvKeysToArray)" > /tmp/tmp_chart.yaml
+      /usr/local/bin/kubeval --ignore-missing-schemas /tmp/tmp_chart.yaml
+
 }
 
 function getImageTag() {

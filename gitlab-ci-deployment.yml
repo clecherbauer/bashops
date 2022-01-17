@@ -72,6 +72,22 @@ shellcheck:
   except:
   - tags
 
+validate-k8s:
+  stage: check
+  image: $KUBECTL_HELM_IMAGE
+  before_script:
+    - git clone $CI_REPOSITORY_URL repository
+    - cd repository
+    - git checkout $CI_COMMIT_SHA
+    - git submodule update --init
+    - echo "$SSH_KEY_CONTAINER" > /root/.ssh/id_rsa && rm -Rf /root/.ssh/id_rsa.pub
+    - echo "$KUBECONFIG_REVIEW" > "$KUBECONFIG"
+    - chmod 600 "$KUBECONFIG"
+  script:
+  - .devops/bashops/validate-k8s.sh
+  variables:
+    GIT_STRATEGY: none
+
 .build_template: &build_job_template
   stage: build
   image: docker:git
