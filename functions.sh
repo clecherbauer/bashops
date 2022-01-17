@@ -711,7 +711,7 @@ function installHelmChart() {
     fi
 
     echo ">>> installing chart"
-    helm install "$(getReleaseName)" .devops/kubernetes --namespace "$(getProjectNamespace)" --wait --timeout 60m0s \
+    helm install "$(getReleaseName)" .devops/kubernetes --namespace "$(getProjectNamespace)" --timeout 60m0s \
       --set "registry=$_DOCKER_REGISTRY" \
       --set "version=$VERSION" \
       --set "image.prefix=$__DOCKER_REGISTRY_PATH" \
