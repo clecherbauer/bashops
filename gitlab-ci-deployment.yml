@@ -98,6 +98,7 @@ validate-k8s:
   - apk add --no-cache bash
   - echo "$SSH_KEY_CONTAINER" > id_rsa
   - .devops/bashops/build_and_push.sh
+  retry: 2
 
 build_review:
   <<: *build_job_template
@@ -121,6 +122,7 @@ build_production:
   image: $KUBECTL_HELM_IMAGE
   script:
   - if [ -f .devops/deploy.sh ]; then .devops/deploy.sh; else .devops/bashops/deploy.sh; fi
+  retry: 2
 
 deploy_review:
   environment:
