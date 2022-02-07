@@ -661,8 +661,9 @@ function convertDotEnvKeysToArray() {
     echo "$array"
 }
 
-function buildAndPushContainerImages() {
-    exitIfRequiredVariablesAreNotSet "_CONTAINERS_TO_BUILD _DOCKER_REGISTRY CI_PROJECT_PATH CI_COMMIT_REF_SLUG"
+function buildAndPushContainerImage() {
+    _CONTAINER=$1
+    exitIfRequiredVariablesAreNotSet "_DOCKER_REGISTRY CI_PROJECT_PATH CI_COMMIT_REF_SLUG"
     if [ -z "$_DOCKER_REGISTRY_USER" ] && [ -z "$_DOCKER_REGISTRY_USER" ]; then
         docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
     else
@@ -675,10 +676,8 @@ function buildAndPushContainerImages() {
         __DOCKER_REGISTRY_PATH="$_DOCKER_REGISTRY/$_DOCKER_REGISTRY_PATH"
     fi
 
-    for _CONTAINER in $_CONTAINERS_TO_BUILD; do
-        docker build -f ".devops/docker/$_CONTAINER/Dockerfile" -t "$__DOCKER_REGISTRY_PATH/$_CONTAINER:$(getImageTag)" .
-        docker push "$__DOCKER_REGISTRY_PATH/$_CONTAINER:$(getImageTag)"
-    done
+    docker build -f ".devops/docker/$_CONTAINER/Dockerfile" -t "$__DOCKER_REGISTRY_PATH/$_CONTAINER:$(getImageTag)" .
+    docker push "$__DOCKER_REGISTRY_PATH/$_CONTAINER:$(getImageTag)"
 }
 
 function getDynamicVariable() {

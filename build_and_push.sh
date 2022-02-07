@@ -7,4 +7,5 @@ set -e
 source "$(dirname "$(readlink -f "$0")")/functions.sh"
 source "$(dirname "$(readlink -f "$0")")/../bashops.sh"
 
-buildAndPushContainerImages
+echo "$SSH_KEY_CONTAINER" > id_rsa
+buildAndPushContainerImage "$1"
