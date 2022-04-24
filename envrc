@@ -1,0 +1,6 @@
+[ -f .env.dist ] && cat .env.dist > .env
+[ -f .env ] || touch .env
+sed -i '/^LOCAL_UID=/d' .env
+sed -i '/^LOCAL_GID=/d' .env
+echo "LOCAL_UID=$(id -u)" >> .env
+echo "LOCAL_GID=$(id -g)" >> .env
