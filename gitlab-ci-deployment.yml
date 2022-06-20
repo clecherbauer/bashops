@@ -88,6 +88,8 @@ validate-k8s:
   - .devops/bashops/validate-k8s.sh
   variables:
     GIT_STRATEGY: none
+  except:
+  - tags
 
 .generate_child_build_pipeline_template: &generate_child_build_pipeline_template
   stage: child-build-pipeline-generator
