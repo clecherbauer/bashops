@@ -71,6 +71,9 @@ shellcheck:
   script:
   - find . -name "*.sh" -exec shellcheck {} +
   except:
+  - staging
+  - test
+  - master
   - tags
 
 validate-k8s:
@@ -89,6 +92,9 @@ validate-k8s:
   variables:
     GIT_STRATEGY: none
   except:
+  - staging
+  - test
+  - master
   - tags
 
 .generate_child_build_pipeline_template: &generate_child_build_pipeline_template
